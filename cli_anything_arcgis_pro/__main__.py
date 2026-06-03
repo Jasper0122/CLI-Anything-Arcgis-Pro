@@ -28,6 +28,7 @@ from .cmd_data import data_group
 from .cmd_gp import gp_cmd
 from .cmd_info import info_cmd
 from .cmd_layout import layout_group
+from .cmd_map import map_group
 from .cmd_project import project_group
 
 
@@ -48,6 +49,7 @@ def cli(ctx, as_json):
 cli.add_command(info_cmd)
 cli.add_command(project_group)
 cli.add_command(layout_group)
+cli.add_command(map_group)
 cli.add_command(data_group)
 cli.add_command(gp_cmd)
 cli.add_command(batch_group)

@@ -54,6 +54,7 @@ The analysis + export half is in place.
 | Cartography (export) | `layout list`, `layout export`, `layout mapseries`, `batch export-layouts` |
 | Data (read + field calc) | `data describe`, `data fields`, `data count`, `data query`, `data calc` |
 | Geoprocessing | `gp` — runs **any** ArcToolbox tool |
+| Map authoring (headless) | `map add-data`, `map symbology graduated`, `map symbology unique` — *new, [#4](https://github.com/Jasper0122/CLI-Anything-Arcgis-Pro/pull/4)* |
 | Live MCP tools | `arcgis_ping`, `arcgis_query`, `arcgis_run_gp`, `arcgis_zoom_to`, `arcgis_export_layout` |
 
 What's missing: the agent can run a buffer, but it can't yet **add the result to a map, symbolize it, compose a layout, or edit features** — that's the rest of this roadmap.
@@ -93,7 +94,7 @@ This is where ArcGIS Pro beats QGIS, and it's our biggest gap. Completing Phase 
 > `gp` (analyze) → `map add-data` (add result) → `map symbology graduated` (auto-classify colors) → `layout export` (finished map) — **zero human clicks.**
 
 ### 1.1 Layer management 🪟
-Add/remove/configure layers in a map.
+Add/remove/configure layers in a map. ✅ **Partially shipped (headless):** `map add-data`. Remaining: `remove-layer`, `set-visible`, `def-query`, `move`, and the live .NET path + MCP tools.
 
 - **Commands:** `map add-data <path> [--map] [--name]`, `map remove-layer <name>`, `map set-visible <name> <bool>`, `map def-query <name> <sql>`
 - Headless: `Map.addDataFromPath()`, `Map.addLayer()`, `Map.removeLayer()`, `lyr.visible`, `lyr.definitionQuery`, `Map.moveLayer()`
@@ -102,7 +103,9 @@ Add/remove/configure layers in a map.
 - **Acceptance:** after `gp` produces an output, one command makes it a visible layer in the active map; verified in both headless and live paths.
 
 ### 1.2 Symbology 🪟 — *highest-value single item*
-Apply renderers so the map actually communicates.
+Apply renderers so the map actually communicates. ✅ **Partially shipped (headless):** `map symbology graduated` / `unique`. Remaining: `simple`, `apply-lyrx`, the live .NET path, and the `arcgis_symbology` MCP tool.
+
+> 🩹 **Two gotchas baked into the shipped code** (save the next person the afternoon): (1) never cache `sym.renderer` in a variable — assign through `sym.renderer.<prop>` each time, a cached handle goes stale after the first set; (2) `updateRenderer` needs a **valid data source with the field present** (it reads the data to classify) — a broken source silently leaves a `SimpleRenderer`, so verify `lyr.symbology.renderer.type` actually switched and error out if not.
 
 - **Commands:** `map symbology graduated <layer> --field --classes --ramp`, `map symbology unique <layer> --field`, `map symbology simple <layer> --color`, `map apply-lyrx <layer> <lyrx>`
 - Headless (standard 4-step): `sym = lyr.symbology` → `sym.updateRenderer('GraduatedColorsRenderer')` → set `sym.renderer.classificationField`, `breakCount`, `colorRamp` → `lyr.symbology = sym`. For `unique`: `sym.updateRenderer('UniqueValueRenderer')` then `sym.renderer.fields = [...]`. Template path: `arcpy.management.ApplySymbologyFromLayer`.

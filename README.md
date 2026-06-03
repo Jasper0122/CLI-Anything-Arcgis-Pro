@@ -84,6 +84,7 @@ Headless CLI (every command takes `--json` before the subcommand):
 | `info` | ArcPy version, license level, extension availability. |
 | `project inspect / layers` | Maps, layouts, layers, data sources of an `.aprx`. |
 | `layout list / export / mapseries` | ★ Professional export: layouts + Map Series / map books. |
+| `map add-data / symbology graduated / symbology unique` | Author the map: add layers, apply graduated-color / unique-value renderers. |
 | `data describe / fields / count / query / calc` | Inspect & edit feature classes and tables. |
 | `gp <tool> -a … --kw k=v` | Run **any** geoprocessing tool (the whole ArcToolbox). |
 | `batch export-layouts` | Export every layout in a project. |
@@ -94,6 +95,10 @@ cli-anything-arcgis-pro --json layout export C:\proj\city.aprx --layout "Poster"
 
 :: buffer roads by 100 m
 cli-anything-arcgis-pro --json gp analysis.Buffer -a C:\d.gdb\roads -a C:\d.gdb\roads_buf --kw buffer_distance_or_field="100 Meters"
+
+:: close the loop: add the result to a map and symbolize it — no GUI clicks
+cli-anything-arcgis-pro --json map add-data C:\proj\city.aprx C:\d.gdb\tracts
+cli-anything-arcgis-pro --json map symbology graduated C:\proj\city.aprx tracts --field MEDINCOME --classes 5 --ramp Viridis
 ```
 
 See [`SKILL.md`](SKILL.md) for the full agent guide, and [`demos/`](demos/) for runnable end-to-end demos.
