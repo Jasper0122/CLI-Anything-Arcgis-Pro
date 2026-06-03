@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Agent-native CLI for ArcGIS Pro (ArcPy): professional cartography, geoprocessing, data query/edit — plus a live-Pro MCP bridge."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "Apache-2.0" }
+license = { text = "PolyForm-Noncommercial-1.0.0" }
 authors = [{ name = "Jasper0122" }]
 keywords = ["arcgis", "arcgis-pro", "arcpy", "gis", "cli", "agent", "mcp", "cli-anything", "cartography", "geoprocessing"]
 dependencies = ["click>=8.0"]

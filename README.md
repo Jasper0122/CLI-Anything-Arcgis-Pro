@@ -10,7 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache 2.0"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-PolyForm_Noncommercial-blue.svg" alt="License: PolyForm Noncommercial"></a>
+  <a href="LICENSE-COMMERCIAL.md"><img src="https://img.shields.io/badge/Commercial_use-license_required-orange.svg" alt="Commercial use requires a license"></a>
   <img src="https://img.shields.io/badge/python-3.9+-3776AB?logo=python&logoColor=white" alt="Python 3.9+">
   <img src="https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white" alt=".NET 8">
   <img src="https://img.shields.io/badge/ArcGIS_Pro-3.4-2C7FB8" alt="ArcGIS Pro 3.4">
@@ -149,7 +150,17 @@ This is a standalone harness for [CLI-Anything](https://github.com/HKUDS/CLI-Any
 
 ## 📄 License
 
-[Apache-2.0](LICENSE), matching upstream CLI-Anything.
+**Source-available**, not OSI open-source. Licensed under the
+[**PolyForm Noncommercial License 1.0.0**](LICENSE):
+
+- 🟢 **Free** for noncommercial use — personal projects, study, research,
+  evaluation, and nonprofit / educational / government organizations.
+- 💼 **Commercial use requires a paid license** — see
+  [`LICENSE-COMMERCIAL.md`](LICENSE-COMMERCIAL.md).
+
+This is an independent downstream project; upstream
+[CLI-Anything](https://github.com/HKUDS/CLI-Anything) is separately
+licensed under Apache-2.0.
 
 ## 🙏 Acknowledgements
 
