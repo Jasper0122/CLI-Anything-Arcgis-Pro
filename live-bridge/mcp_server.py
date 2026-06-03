@@ -164,6 +164,47 @@ TOOLS = [
             "required": ["tool", "params"],
         },
     },
+    {
+        "name": "arcgis_symbology",
+        "description": (
+            "给活工程里某要素图层套用渲染器，让地图会说话——用户能在 Pro 窗口里立刻看到变色。"
+            "renderer='graduated' 用数值字段做分级配色（专题图主力）；'unique' 用分类字段每个值一种颜色。"
+            "例：layer='tracts', renderer='graduated', field='MEDINCOME', classes=5, ramp='Viridis'。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "layer": {"type": "string", "description": "要渲染的要素图层名。"},
+                "renderer": {
+                    "type": "string",
+                    "enum": ["graduated", "unique"],
+                    "description": "graduated=数值字段分级色；unique=分类字段唯一值色。",
+                },
+                "field": {
+                    "type": "string",
+                    "description": "用于渲染的字段。graduated 需数值字段；unique 用分类字段。",
+                },
+                "classes": {
+                    "type": "integer",
+                    "description": "graduated 的分级数（默认 5；unique 忽略）。",
+                },
+                "method": {
+                    "type": "string",
+                    "enum": [
+                        "NaturalBreaks",
+                        "EqualInterval",
+                        "Quantile",
+                        "GeometricInterval",
+                        "StandardDeviation",
+                    ],
+                    "description": "graduated 的分类方法（默认 NaturalBreaks；unique 忽略）。",
+                },
+                "ramp": {"type": "string", "description": "色带名，如 'Viridis'（可选）。"},
+                "map": {"type": "string", "description": "可选地图名（缺省用活动/第一个地图）。"},
+            },
+            "required": ["layer", "renderer", "field"],
+        },
+    },
 ]
 
 
@@ -198,6 +239,7 @@ def handle(req):
             "arcgis_zoom_to": "zoom_to",
             "arcgis_query": "query",
             "arcgis_run_gp": "run_gp",
+            "arcgis_symbology": "symbology",
         }
         cmd = command_map.get(name)
         if cmd is None:

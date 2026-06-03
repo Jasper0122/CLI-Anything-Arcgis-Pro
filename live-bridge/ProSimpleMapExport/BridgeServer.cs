@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
+using ArcGIS.Core.CIM;
 using ArcGIS.Core.Data;
 using ArcGIS.Desktop.Core;
 using ArcGIS.Desktop.Core.Geoprocessing;
@@ -159,6 +160,9 @@ namespace ProSimpleMapExport
                     case "run_gp":
                         // ExecuteToolAsync manages its own threading; do NOT wrap in QueuedTask.
                         data = DoRunGp(re).GetAwaiter().GetResult();
+                        break;
+                    case "symbology":
+                        data = QueuedTask.Run(() => (object)DoSymbology(re)).GetAwaiter().GetResult();
                         break;
                     default:
                         return Json(false, null, $"unknown command: {command}");
@@ -340,6 +344,99 @@ namespace ProSimpleMapExport
                 messages = gpResult.Messages?.Select(m => m.Text).ToArray(),
                 errorMessages = gpResult.ErrorMessages?.Select(m => m.Text).ToArray(),
             };
+        }
+
+        // NOTE: this live handler is written to the ArcGIS Pro SDK API but has NOT
+        // been compiled/run here (that needs Visual Studio + the Pro SDK). It mirrors
+        // the verified headless `map symbology` semantics. Build the add-in and smoke
+        // -test against a live layer before relying on it.
+        private static object DoSymbology(JsonElement root)
+        {
+            string layerName = Str(root, "layer");
+            if (string.IsNullOrWhiteSpace(layerName)) throw new Exception("missing 'layer'");
+            string renderer = (Str(root, "renderer") ?? "").Trim().ToLowerInvariant();
+            string field = Str(root, "field");
+            if (string.IsNullOrWhiteSpace(field)) throw new Exception("missing 'field'");
+            int classes = IntOr(root, "classes", 5);
+            string method = Str(root, "method");
+            string rampName = Str(root, "ramp");
+
+            // Resolve the map: requested name -> active map -> first map.
+            Map map = null;
+            string mapName = Str(root, "map");
+            if (!string.IsNullOrWhiteSpace(mapName))
+                map = Project.Current.GetItems<MapProjectItem>()
+                    .FirstOrDefault(m => string.Equals(m.Name, mapName, StringComparison.OrdinalIgnoreCase))?.GetMap();
+            map ??= MapView.Active?.Map;
+            map ??= Project.Current.GetItems<MapProjectItem>().FirstOrDefault()?.GetMap();
+            if (map == null) throw new Exception("工程里没有可用的地图");
+
+            var layer = map.GetLayersAsFlattenedList().OfType<FeatureLayer>()
+                .FirstOrDefault(l => string.Equals(l.Name, layerName, StringComparison.OrdinalIgnoreCase));
+            if (layer == null) throw new Exception($"地图「{map.Name}」里找不到要素图层: {layerName}");
+
+            CIMColorRamp ramp = string.IsNullOrWhiteSpace(rampName) ? null : TryFindColorRamp(rampName);
+
+            if (renderer == "graduated")
+            {
+                var def = new GraduatedColorsRendererDefinition
+                {
+                    ClassificationField = field,
+                    BreakCount = classes,
+                };
+                if (!string.IsNullOrWhiteSpace(method)) def.ClassificationMethod = ParseMethod(method);
+                if (ramp != null) def.ColorRamp = ramp;
+                layer.SetRenderer(layer.CreateRenderer(def));
+            }
+            else if (renderer == "unique")
+            {
+                var def = new UniqueValueRendererDefinition(new List<string> { field });
+                if (ramp != null) def.ColorRamp = ramp;
+                layer.SetRenderer(layer.CreateRenderer(def));
+            }
+            else
+            {
+                throw new Exception("renderer 必须是 'graduated' 或 'unique'");
+            }
+
+            return new
+            {
+                map = map.Name,
+                layer = layer.Name,
+                renderer,
+                field,
+                classes = renderer == "graduated" ? classes : (int?)null,
+                ramp = rampName,
+            };
+        }
+
+        private static ClassificationMethod ParseMethod(string m)
+        {
+            switch ((m ?? "").Trim().ToLowerInvariant())
+            {
+                case "equalinterval": return ClassificationMethod.EqualInterval;
+                case "quantile": return ClassificationMethod.Quantile;
+                case "geometricinterval": return ClassificationMethod.GeometricInterval;
+                case "standarddeviation": return ClassificationMethod.StandardDeviation;
+                case "naturalbreaks":
+                default: return ClassificationMethod.NaturalBreaks;
+            }
+        }
+
+        private static CIMColorRamp TryFindColorRamp(string name)
+        {
+            // Best-effort: search the project's styles for a ramp by name. On any
+            // failure fall back to the renderer definition's default ramp.
+            try
+            {
+                foreach (var style in Project.Current.GetItems<StyleProjectItem>())
+                {
+                    var hits = style.SearchColorRamps(name);
+                    if (hits != null && hits.Count > 0) return hits[0].ColorRamp;
+                }
+            }
+            catch { /* ignore — default ramp is fine */ }
+            return null;
         }
 
         private static string Str(JsonElement root, string name) =>
