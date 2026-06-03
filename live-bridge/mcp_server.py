@@ -18,6 +18,25 @@ import urllib.error
 # server and ArcGIS Pro are on different hosts (e.g. running this in a container).
 BRIDGE_URL = os.environ.get("ARCGIS_BRIDGE_URL", "http://127.0.0.1:5005/")
 
+# --- Deny-by-default deletion guard -----------------------------------------
+# Block any geoprocessing tool whose name looks destructive (Delete*/Truncate*)
+# unless the caller explicitly opts in via an `allow_delete` argument or the
+# ARCGIS_CLI_ALLOW_DELETE environment variable. Stops run_gp from deleting
+# shapefiles / feature classes / geodatabase contents by default.
+_DESTRUCTIVE_TOOL_TOKENS = ("delete", "truncate")
+_TRUTHY = {"1", "true", "yes", "on", "y", "t"}
+
+
+def _deletion_allowed(args):
+    if str((args or {}).get("allow_delete", "")).strip().lower() in _TRUTHY:
+        return True
+    return os.environ.get("ARCGIS_CLI_ALLOW_DELETE", "").strip().lower() in _TRUTHY
+
+
+def _is_destructive_tool(tool):
+    t = (tool or "").lower()
+    return any(tok in t for tok in _DESTRUCTIVE_TOOL_TOKENS)
+
 
 def log(msg):
     print(f"[arcgis-mcp] {msg}", file=sys.stderr, flush=True)
@@ -133,6 +152,14 @@ TOOLS = [
                         "图层名在后台 GP 里解析不可靠。距离等参数如 '500 Meters'。"
                     ),
                 },
+                "allow_delete": {
+                    "type": "boolean",
+                    "description": (
+                        "Safety opt-in. Destructive tools (Delete*/Truncate*) are BLOCKED by "
+                        "default to protect shapefiles, feature classes and geodatabases. Set "
+                        "true ONLY when you intend to delete or truncate data."
+                    ),
+                },
             },
             "required": ["tool", "params"],
         },
@@ -175,6 +202,15 @@ def handle(req):
         cmd = command_map.get(name)
         if cmd is None:
             return err(rid, -32601, f"unknown tool: {name}")
+        # Deny-by-default: block destructive geoprocessing unless explicitly allowed.
+        if cmd == "run_gp" and _is_destructive_tool(args.get("tool")) and not _deletion_allowed(args):
+            blocked = (
+                f"Refused to run destructive tool {args.get('tool')!r}: it deletes or truncates "
+                "data (shapefiles, feature classes, geodatabase contents) and is blocked by "
+                "default. To proceed intentionally, set allow_delete=true in the tool arguments "
+                "or set ARCGIS_CLI_ALLOW_DELETE=1 in the server environment."
+            )
+            return ok(rid, {"content": [{"type": "text", "text": blocked}], "isError": True})
         payload = {"command": cmd}
         payload.update(args)
         result = call_bridge(payload)

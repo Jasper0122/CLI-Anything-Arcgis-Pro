@@ -5,6 +5,7 @@ import json
 import click
 
 from ._io import arcgis_command
+from ._safety import guard_expr
 
 
 @click.group("data")
@@ -109,10 +110,14 @@ def query_cmd(dataset, where, fields, limit, geometry):
 @click.option("--field", required=True, help="Field to calculate.")
 @click.option("--expr", required=True, help='Python expression, e.g. "!POP! * 2".')
 @click.option("--where", default=None, help="Limit calculation to matching rows.")
+@click.option("--allow-delete", "allow_delete", is_flag=True, default=False, help="Permit delete/remove/truncate tokens in the expression. Blocked by default.")
 @arcgis_command()
-def calc_cmd(dataset, field, expr, where):
+def calc_cmd(dataset, field, expr, where, allow_delete):
     """Calculate a field with arcpy.management.CalculateField (Python 3)."""
     import arcpy
+
+    # Deny-by-default: refuse expressions that look like they delete/remove data.
+    guard_expr(expr, allow_delete)
 
     # CalculateField has no where clause, so scope it via a selected layer/view.
     target = dataset
