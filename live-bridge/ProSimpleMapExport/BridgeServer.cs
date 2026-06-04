@@ -31,14 +31,29 @@ namespace ProSimpleMapExport
     internal static class BridgeServer
     {
         public const int Port = 5005;
-        public static readonly string LogPath = @"C:\Users\zongr\ProSimpleMapExport\_bridge.log";
+        // Use dynamic path based on user's AppData folder instead of hardcoded path
+        public static readonly string LogPath =
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "ProSimpleMapExport",
+                "_bridge.log"
+            );
         private static TcpListener _listener;
         private static Thread _thread;
         private static volatile bool _running;
 
         public static void Log(string msg)
         {
-            try { File.AppendAllText(LogPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {msg}\r\n"); } catch { }
+            try
+            {
+                // Ensure log directory exists before writing
+                var logDir = Path.GetDirectoryName(LogPath);
+                if (!Directory.Exists(logDir))
+                    Directory.CreateDirectory(logDir);
+
+                File.AppendAllText(LogPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {msg}\r\n");
+            }
+            catch { /* silently ignore logging errors */ }
         }
 
         public static void Start()
