@@ -1,7 +1,7 @@
-"""MCP server bridging Claude Code to the LIVE ArcGIS Pro session.
+"""MCP server bridging an MCP client to the LIVE ArcGIS Pro session.
 
 Architecture:
-    Claude Code  --stdio JSON-RPC-->  this server  --HTTP-->  ProSimpleMapExport
+    MCP client  --stdio JSON-RPC-->  this server  --HTTP-->  ProSimpleMapExport
     add-in (inside ArcGIS Pro, 127.0.0.1:5005)  -->  live project (QueuedTask).
 
 Zero third-party deps: implements the MCP stdio protocol by hand using only the
@@ -17,6 +17,16 @@ import urllib.error
 # Where the in-Pro add-in bridge listens. Override with ARCGIS_BRIDGE_URL when the
 # server and ArcGIS Pro are on different hosts (e.g. running this in a container).
 BRIDGE_URL = os.environ.get("ARCGIS_BRIDGE_URL", "http://127.0.0.1:5005/")
+
+SERVER_INSTRUCTIONS = (
+    "This server operates the live ArcGIS Pro project through the "
+    "ProSimpleMapExport add-in. Call arcgis_ping first to confirm ArcGIS Pro is "
+    "open, the add-in bridge is reachable, and to discover maps/layouts/layers. "
+    "For arcgis_run_gp, pass full Windows dataset paths for geoprocessing inputs "
+    "and outputs; short layer names are unreliable in background GP. Destructive "
+    "geoprocessing tools whose names contain Delete or Truncate are blocked by "
+    "default unless allow_delete=true is provided intentionally."
+)
 
 # --- Deny-by-default deletion guard -----------------------------------------
 # Block any geoprocessing tool whose name looks destructive (Delete*/Truncate*)
@@ -301,6 +311,7 @@ def handle(req):
             "protocolVersion": client_ver,
             "capabilities": {"tools": {}},
             "serverInfo": {"name": "arcgis-pro-bridge", "version": "1.0.0"},
+            "instructions": SERVER_INSTRUCTIONS,
         })
 
     if method in ("notifications/initialized", "initialized"):
@@ -363,7 +374,7 @@ _BOM_CODEPOINTS = (0xFEFF, 0xFFFE, 0x200B)
 
 
 def main():
-    # Claude Code speaks UTF-8 over stdio. On a non-UTF-8 locale (e.g. Chinese GBK)
+    # MCP clients speak UTF-8 over stdio. On a non-UTF-8 locale (e.g. Chinese GBK)
     # Python would otherwise mis-decode the stream — force UTF-8 both ways.
     try:
         sys.stdin.reconfigure(encoding="utf-8")

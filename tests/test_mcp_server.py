@@ -82,6 +82,19 @@ def test_initialize_handshake():
     )
     assert resp["result"]["capabilities"]["tools"] == {}
     assert resp["result"]["serverInfo"]["name"] == "arcgis-pro-bridge"
+    assert "instructions" in resp["result"]
+
+
+def test_initialize_instructions_are_codex_friendly():
+    resp = mcp.handle(
+        {"jsonrpc": "2.0", "id": 0, "method": "initialize",
+         "params": {"protocolVersion": "2024-11-05"}}
+    )
+    instructions = resp["result"]["instructions"]
+    assert "arcgis_ping" in instructions
+    assert "ArcGIS Pro" in instructions
+    assert "full Windows dataset paths" in instructions
+    assert "allow_delete=true" in instructions
 
 
 def test_tools_list_advertises_symbology_with_valid_schema():
