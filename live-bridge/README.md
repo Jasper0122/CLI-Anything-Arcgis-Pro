@@ -52,13 +52,39 @@ Close Pro, then copy the package to the well-known add-in folder and reopen Pro:
 (Or double-click the `.esriAddinX` to use Esri's Add-In Manager.) On startup the
 module autoloads and the bridge listens on `127.0.0.1:5005`.
 
-## Register the MCP server
+## Register the MCP server with Claude Code
 
-With any MCP client (e.g. Claude Code):
+For Claude Code:
 
 ```bat
 claude mcp add arcgis-pro --scope user -- python C:\path\to\live-bridge\mcp_server.py
 ```
+
+## Register the MCP server with Codex
+
+Codex can run the same stdio MCP server. From a terminal, register it with:
+
+```bat
+codex mcp add arcgis-pro -- python C:\path\to\CLI-Anything-Arcgis-Pro\live-bridge\mcp_server.py
+```
+
+Or add it to your Codex `config.toml`:
+
+```toml
+[mcp_servers.arcgis-pro]
+command = "python"
+args = ["C:\\path\\to\\CLI-Anything-Arcgis-Pro\\live-bridge\\mcp_server.py"]
+startup_timeout_sec = 10
+tool_timeout_sec = 180
+```
+
+After registration, restart Codex or open a new Codex session so the MCP server
+is loaded. Start with `arcgis_ping`; it verifies that ArcGIS Pro is open, the
+add-in bridge is reachable, and reports the available maps and layouts. For
+`arcgis_run_gp`, use full Windows dataset paths for inputs and outputs because
+short layer names are unreliable in background geoprocessing. Destructive GP
+tools (`Delete*` / `Truncate*`) are blocked unless you intentionally pass
+`allow_delete=true`.
 
 `mcp_server.py` is stdlib-only, so any Python 3 works. It forces UTF-8 stdio
 (important on non-UTF-8 locales) and tolerates a leading BOM.
